@@ -32,7 +32,6 @@ int main(int argc, char **argv)
   p.add("raw", 'r', "output raw data to /tmp/sdjnt_light1.raw and "
         "/tmp/sdjnt_light2.log");
 
-  p.parse(argc, argv);
   if(p.parse(argc, argv) == false || p.exist("help") == true){
     printf("%s\n", p.error_full().c_str());
     printf("%s", p.usage().c_str());

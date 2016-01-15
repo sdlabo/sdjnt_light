@@ -91,11 +91,11 @@ int udp_init(in_addr_t in_addr, int port)
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = in_addr;
 
- int n = 16 * 1024 * 1024;
- if(setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &n, sizeof(n)) == -1) {
-   perror("setsockopt");
-   exit(1);
- }
+  int n = 16 * 1024 * 1024;
+  if(setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &n, sizeof(n)) == -1) {
+    perror("setsockopt");
+    exit(1);
+  }
 
   bind(sock, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
 
