@@ -65,6 +65,7 @@ struct fft_arg
 extern char param_basename[1024];
 extern int param_duration;
 extern int param_accumulation_time;
+extern bool param_is_output_rawfile;
 
 bool g_is_calc_finished;
 
@@ -300,6 +301,19 @@ void *calc_thread(void *param)
 
   struct fft_arg fe1, fe2;
 
+  if(param_is_output_rawfile == true){
+    FILE* fp = fopen("/tmp/ch1_work.raw", "w");
+    fwrite(arg->e->fft_work1, sizeof(double), 2 * DATA_SIZE, fp);
+    fclose(fp);
+
+    fp = fopen("/tmp/ch2_work.raw", "w");
+    fwrite(arg->e->fft_work2, sizeof(double), 2 * DATA_SIZE, fp);
+    fclose(fp);
+
+    rename("/tmp/ch1_work.raw", "/tmp/sdjnt_light_ch1.raw");
+    rename("/tmp/ch2_work.raw", "/tmp/sdjnt_light_ch2.raw");
+  }
+
   fe1.fft_work = arg->e->fft_work1;
   fe1.ip = arg->e->ip1;
   fe1.w = arg->e->w1;
@@ -344,7 +358,7 @@ void *recv_thread(void *param){
   struct env *e = (struct env*) param;
   int idx = 0;
   int id = 0, prev_id = 0;
-  while(idx < DATA_SIZE){
+  while(idx < DATA_SIZE * 2){
     recv(e->sock, e->recv_buf, sizeof(int) * RECV_BUF_SIZE, 0);
 
     int *pi = (int*) e->recv_buf;
@@ -362,13 +376,13 @@ void *recv_thread(void *param){
     prev_id = id;
     short *data = (short*)(e->recv_buf + sizeof(int));
     for(int i = 0; i < DATA_BURST_SIZE; i++){
-      short s = ntohs(data[i * 2]);
+      short s = ntohs(data[i]);
       if(i % 2 == 0){
-        e->cur1[2 * (idx + i) + 0] = ((double) s); // Re
-        e->cur1[2 * (idx + i) + 1] = (double) 0; // Im
+        e->cur1[idx + (i / 2) * 2 + 0] = ((double) s); // Re
+        e->cur1[idx + (i / 2) * 2 + 1] = (double) 0; // Im
       }else{
-        e->cur2[2 * (idx + i) + 0] = ((double) s); // Re
-        e->cur2[2 * (idx + i) + 1] = (double) 0; // Im
+        e->cur2[idx + (i / 2) * 2 + 0] = ((double) s); // Re
+        e->cur2[idx + (i / 2) * 2 + 1] = (double) 0; // Im
       }
     }
 

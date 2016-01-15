@@ -9,6 +9,7 @@ using namespace std;
 char param_basename[1024];
 int param_duration;
 int param_accumulation_time;
+bool param_is_output_rawfile;
 
 void sigint_handler(int sig)
 {
@@ -28,14 +29,21 @@ int main(int argc, char **argv)
              "the number of accumulated results per file.",
              false, 5);
   p.add("help", 'h', "print help");
+  p.add("raw", 'r', "output raw data to /tmp/sdjnt_light1.raw and "
+        "/tmp/sdjnt_light2.log");
 
   p.parse(argc, argv);
-  if(p.parse(argc, argv) == false || p.exist("help")){
+  if(p.parse(argc, argv) == false || p.exist("help") == true){
     printf("%s\n", p.error_full().c_str());
     printf("%s", p.usage().c_str());
     return 0;
   }
 
+  if(p.exist("raw") == true){
+    param_is_output_rawfile = true;
+  }else{
+    param_is_output_rawfile = false;
+  }
 
   param_duration = p.get<int>("duration");
   param_accumulation_time = p.get<int>("accumulation");
