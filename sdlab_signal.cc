@@ -361,14 +361,15 @@ void *recv_thread(void *param){
 
     prev_id = id;
     short *data = (short*)(e->recv_buf + sizeof(int));
-    for(int i = 0; i < DATA_BURST_SIZE / 2; i++){
+    for(int i = 0; i < DATA_BURST_SIZE; i++){
       short s = ntohs(data[i * 2]);
-      e->cur1[2 * (idx + i) + 0] = ((double) s); // Re
-      e->cur1[2 * (idx + i) + 1] = (double) 0; // Im
-
-      s = ntohs(data[i * 2 + 1]);
-      e->cur2[2 * (idx + i) + 0] = ((double) s); // Re
-      e->cur2[2 * (idx + i) + 1] = (double) 0; // Im
+      if(i % 2 == 0){
+        e->cur1[2 * (idx + i) + 0] = ((double) s); // Re
+        e->cur1[2 * (idx + i) + 1] = (double) 0; // Im
+      }else{
+        e->cur2[2 * (idx + i) + 0] = ((double) s); // Re
+        e->cur2[2 * (idx + i) + 1] = (double) 0; // Im
+      }
     }
 
     idx += DATA_BURST_SIZE;
