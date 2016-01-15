@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>/* struct hostent,gethostbyname‚Ì‚½‚ß */
+#include <netdb.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <math.h>
@@ -13,50 +13,43 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
-
 #include <time.h>
 #include <float.h>
 
-//#include "UDPComm.h"
 #include "fftsg.h"
 #include "sdlab.h"
 
 #define DATA_SIZE (2*1024*1024)  // 2^(21) points
-
 #define PORTA (0x4000) // receive port #.
-
 // the size of a buffer for receiving a UDP packet
 #define RECV_BUF_SIZE   (2048)
 // the size of a length of data in a UDP packet
 #define DATA_BURST_SIZE  (512)
-
 // the buffer size more than 2 has not been supported yet
 #define NUM_OF_ENV_BUFFER (2)
 
 // a working data for receiving packet and FFT operation
 struct env{
   // a pointer to the instance of UDP communication
-//  UDPComm *comm;
   int sock;
   int port;
   // receiving data buffers, selecting as double buffer
-  double  *buf1[NUM_OF_ENV_BUFFER];
-  double  *buf2[NUM_OF_ENV_BUFFER];
+  double *buf1[NUM_OF_ENV_BUFFER];
+  double *buf2[NUM_OF_ENV_BUFFER];
   // a pointer to the active buffer to receive UDP packet.
-  double  *cur1;
-  double  *cur2;
+  double *cur1;
+  double *cur2;
   // a pointer to the buffer working FFT operation
-  double  *fft_work1; 
-  double  *fft_work2; 
+  double *fft_work1;
+  double *fft_work2;
   // internal data for FFT operation
-  int     *ip1;
-  int     *ip2;
+  int *ip1;
+  int *ip2;
   // internal data for FFT operation
-  double  *w1;
-  double  *w2;
+  double *w1;
+  double *w2;
   // temporal buffer to receive a UDP packet.
   char recv_buf[RECV_BUF_SIZE];
-
   // identifier for the active buffer;
   int buf_id1;
   int buf_id2;
@@ -73,26 +66,7 @@ extern char param_basename[1024];
 extern int param_duration;
 extern int param_accumulation_time;
 
-
-double data_fft10_a[DATA_SIZE];
-double data_fft10_b[DATA_SIZE];
-double data_cross10_re[DATA_SIZE];
-double data_cross10_im[DATA_SIZE];
-
-double data_fft_total_a[DATA_SIZE];
-double data_fft_total_b[DATA_SIZE];
-double data_cross_total_re[DATA_SIZE];
-double data_cross_total_im[DATA_SIZE];
-
 bool g_is_calc_finished;
-int result_total;
-int log_drop_count;
-double log_calc_max = DBL_MIN;
-double log_calc_min = DBL_MAX;
-double log_calc_now;
-double log_fft_max = DBL_MIN;
-double log_fft_min = DBL_MAX;
-double log_fft_now;
 
 // a system envrionment
 struct system_env{
@@ -114,7 +88,14 @@ int udp_init(in_addr_t in_addr, int port)
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = in_addr,
+  addr.sin_addr.s_addr = in_addr;
+
+ int n = 16 * 1024 * 1024;
+ if(setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &n, sizeof(n)) == -1) {
+   perror("setsockopt");
+   exit(1);
+ }
+
   bind(sock, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
 
   return sock;
@@ -232,9 +213,6 @@ void *fft_thread(void *param)
 }
 
 
-//static void fft(struct env *e){
-//  cdft(DATA_SIZE, -1, e->fft_work, e->ip, e->w);
-//}
 
 struct calc_arg{
   struct system_env *sys;
@@ -271,8 +249,6 @@ void save_result(struct calc_arg *arg){
     arg->sys->cur[DATA_SIZE / 2 * 3 + i] += p_b[i];
   }
 
-  result_total++;
-
   // increment the counter for the number of stored results. 
   arg->sys->result_count++;
 }
@@ -292,7 +268,7 @@ void* dump_thread(void *param){
 
   printf("opening %s\n", str);
   FILE *fp;
-    // the file is created newly at first.
+  // the file is created newly at first.
   printf("create: %s\n", str);
   fp = fopen(str, "wb");
 
@@ -317,11 +293,9 @@ void* dump_thread(void *param){
 /**
  * FFT operation for received data.
  */
-//void calc(struct calc_arg *arg){
 void *calc_thread(void *param)
 {
   struct calc_arg *arg = (struct calc_arg*) param;
-  clock_t start = clock();
   pthread_t fft1, fft2;
 
   struct fft_arg fe1, fe2;
@@ -340,16 +314,6 @@ void *calc_thread(void *param)
   pthread_join(fft1, NULL);
   pthread_join(fft2, NULL);
 
-  clock_t fft_end = clock();
-  log_fft_now = ((double)(fft_end - start)) / CLOCKS_PER_SEC;
-  if(log_fft_max < log_fft_now){
-    log_fft_max = log_fft_now;
-  }
-
-  if(log_fft_min > log_fft_now){
-    log_fft_min = log_fft_now;
-  }
-
   save_result(arg);
 
   if(arg->sys->result_count == param_accumulation_time){
@@ -364,10 +328,6 @@ void *calc_thread(void *param)
     pthread_create(&th, NULL, dump_thread, arg);
     pthread_detach(th);
 
-    bzero((void*) data_cross10_re, sizeof(double) * DATA_SIZE);
-    bzero((void*) data_cross10_im, sizeof(double) * DATA_SIZE);
-    bzero((void*) data_fft10_a, sizeof(double) * DATA_SIZE);
-    bzero((void*) data_fft10_b, sizeof(double) * DATA_SIZE);
   }
   printf("\tcalc done\n");
   g_is_calc_finished = true;
@@ -397,7 +357,6 @@ void *recv_thread(void *param){
     if((id - prev_id) > DATA_BURST_SIZE / 2){
       printf("!!! Drop a packet: %08x - %08x = %08x\n",
              id, prev_id, id - prev_id);
-      log_drop_count++;
     }
 
     prev_id = id;
@@ -444,20 +403,6 @@ void* sdlab_signal_main()
 
   arg.sys = &sys;
   arg.e = &e;
-
-  bzero((void*) data_cross10_re, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_cross10_im, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_fft10_a, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_fft10_b, sizeof(double) * DATA_SIZE);
-
-  bzero((void*) data_cross_total_re, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_cross_total_im, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_fft_total_a, sizeof(double) * DATA_SIZE);
-  bzero((void*) data_fft_total_b, sizeof(double) * DATA_SIZE);
-
-  result_total = 0;
-  log_drop_count = 0;
-
 
   pthread_attr_t tattr;
   pthread_attr_init(&tattr);

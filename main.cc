@@ -1,6 +1,4 @@
-#include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
 #include <signal.h>
 #include <string>
 #include "sdlab_signal.h"
