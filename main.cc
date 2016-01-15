@@ -21,7 +21,7 @@ int main(int argc, char **argv)
   p.add<string>("basename", 'b', "base name of filename. "
                 "Output filename will be [basename]_[count].",
                 false,
-                "sdjnt_light_default");
+                "test_sdjnt_light");
   p.add<int>("duration", 'd', "measurement duration [sec].",
              false, 10);
   p.add<int>("accumulation", 'a',

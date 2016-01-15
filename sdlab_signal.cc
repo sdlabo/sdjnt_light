@@ -354,7 +354,7 @@ void *recv_thread(void *param){
       continue;
     }
 
-    if((id - prev_id) > DATA_BURST_SIZE / 2){
+    if((id - prev_id) > DATA_BURST_SIZE){
       printf("!!! Drop a packet: %08x - %08x = %08x\n",
              id, prev_id, id - prev_id);
     }
@@ -371,7 +371,7 @@ void *recv_thread(void *param){
       e->cur2[2 * (idx + i) + 1] = (double) 0; // Im
     }
 
-    idx += DATA_BURST_SIZE / 2;
+    idx += DATA_BURST_SIZE;
   }
 
 
