@@ -378,11 +378,11 @@ void *recv_thread(void *param){
     for(int i = 0; i < DATA_BURST_SIZE; i++){
       short s = ntohs(data[i]);
       if(i % 2 == 0){
-        e->cur1[idx + (i / 2) * 2 + 0] = ((double) s); // Re
-        e->cur1[idx + (i / 2) * 2 + 1] = (double) 0; // Im
+        e->cur1[idx + i + 0] = ((double) s); // Re
+        e->cur1[idx + i + 1] = (double) 0; // Im
       }else{
-        e->cur2[idx + (i / 2) * 2 + 0] = ((double) s); // Re
-        e->cur2[idx + (i / 2) * 2 + 1] = (double) 0; // Im
+        e->cur2[idx + i - 1 + 0] = ((double) s); // Re
+        e->cur2[idx + i - 1 + 1] = (double) 0; // Im
       }
     }
 
